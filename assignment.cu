@@ -176,6 +176,15 @@ void printArray(int *arr, int numFiles, int gridX){
     }
     std::cout<< std::endl;
 }
+void printGrid(int *arr, char *args[], int numFiles, int gridX){
+    for(int x=0; x<numFiles; x++){        
+        if(x%gridX==0){
+        std::cout<< std::endl;
+        }
+        std::cout<< "<" << args[arr[x]+2] << ">" << " ";
+    }
+    std::cout<< std::endl;  
+}
 
 //returns square of cartesian distance
 double gridDistanceSq(int x1, int x2, int y1, int y2){
@@ -257,5 +266,6 @@ int main(int argc, char *argv[])
     
     printArray(bestArrangement, numFiles, xGrid);
     
+    printGrid(bestArrangement, argv, numFiles, xGrid);
     return 0;
 }

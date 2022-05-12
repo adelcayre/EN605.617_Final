@@ -7,6 +7,8 @@
 #include <numeric>
 #include <math.h>
 #include <bits/stdc++.h>
+#include <time.h> 
+
 
 
 static const int blockSize = 1024;
@@ -76,10 +78,13 @@ class ImageInfo {
         int R_avg, G_avg, B_avg;
     
         ImageInfo(const char *fileName, int x){
+            
+            
             imgNo=x;
             imageData=stbi_load(fileName, &width, &height, &n, 0);
             numPixels=width*height;
             
+           
             //HOST pinned memory allocation
             cudaMallocHost((void **)&R, width * height * sizeof(int));
             cudaMallocHost((void **)&G, width * height * sizeof(int));
@@ -87,12 +92,16 @@ class ImageInfo {
             
             //Separate RGB Channels
             int y=0;
-            for(int x=0; x< width * height; x++){
-                R[x] = static_cast<int>(imageData[y+0]);
-                G[x] = static_cast<int>(imageData[y+1]);
-                B[x] = static_cast<int>(imageData[y+2]);
+            
+            for(int j=0; x< width * height; x++){
+                R[j] = static_cast<int>(imageData[y+0]);
+                G[j] = static_cast<int>(imageData[y+1]);
+                B[j] = static_cast<int>(imageData[y+2]);
                 y+=3;
             }
+            
+            
+            
             
         }
     
@@ -249,17 +258,30 @@ int main(int argc, char *argv[])
     
     std::vector<ImageInfo> Images;
     
+    //opening images
+    clock_t start= clock();
     for(int x=2; x<argc; x++){
         Images.push_back(ImageInfo(argv[x], x-2));
     }
+    //time to load images                     
+    double imgLoad = (double) (clock()-start) / CLOCKS_PER_SEC;                     
+                         
     std::vector<ImageInfo>::iterator it= Images.begin();
     
+    //gpu kernel launches
+    start = clock();
     for(it; it != Images.end(); it++)
     {
         it->launchKernel();
         it->freeArrays();
     }
- 
+    //time to run kernels
+    double kernelRuns = (double) (clock()-start) / CLOCKS_PER_SEC;   
+    
+    it= Images.begin();
+     
+    //find best arrangement
+    start = clock();
     double** colorDist= colorDistanceGrid(numFiles, it);
     int *bestArrangement = new int[numFiles];
     bestArrangement=findBestArrangement(numFiles, colorDist, xGrid);
@@ -267,5 +289,16 @@ int main(int argc, char *argv[])
     printArray(bestArrangement, numFiles, xGrid);
     
     printGrid(bestArrangement, argv, numFiles, xGrid);
+    
+    //time to find arrangement
+    double gridTime = (double) (clock()-start) / CLOCKS_PER_SEC; 
+    
+    //timing metrics
+    std::cout<<"Number of Images: " << numFiles << std::endl;
+    std::cout<<"Image Size: " << Images.begin()->numPixels << " pixels" <<std::endl;
+    std::cout<<"Image Load Time: " << imgLoad << "s" <<std::endl;
+    std::cout<<"Kernel Run Time: " << kernelRuns << "s" <<std::endl;
+    std::cout<<"Grid Run Time: " << gridTime << "s" <<std::endl;
+
     return 0;
 }
